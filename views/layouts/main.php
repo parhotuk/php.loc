@@ -12,5 +12,13 @@
     <div class="container">
         <?= $content ?>
     </div>
+    <script>
+        setTimeout(function() {
+            var divToHide = document.querySelector(".error-messages");
+            if (divToHide) {
+                divToHide.style.display = "none";
+            }
+        }, 5000);
+    </script>
 </body>
 </html>

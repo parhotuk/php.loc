@@ -1,6 +1,11 @@
 <div class="title">
     <h1>REGISTER</h1>
 </div>
+<?php if(isset($errorMessage) && !empty($errorMessage)): ?>
+    <div class="error-messages">
+        <?= $errorMessage ?>
+    </div>
+<?php endif; ?>
 <div class="content">
     <form action="/register" method="post">
         <div class="form-line">

@@ -37,6 +37,10 @@ class MovieController extends Controller
             // выполняем поиск и получаем из БД нужные фильмы
             $movies = $movieModel->searchMovies($searchQuery, $fieldForSearch);
         } else {
+            if(isset($_SESSION['errorMessage'])) {
+                $errorMessage = $_SESSION['errorMessage'];
+                unset($_SESSION['errorMessage']);
+            }
             // Найдем все фильмы
             $movies = $movieModel->getAllMovies();
         }
@@ -52,21 +56,33 @@ class MovieController extends Controller
     // Добавление фильма
     public function addMovie()
     {
-        if(isset($_POST['title']) && !empty($_POST['title'])) {
-            $movie = [];
-            $movie['title'] = trim($_POST['title']);
-            $movie['year'] = trim($_POST['year']);
-            $movie['format'] = trim($_POST['format']);
-            $movie['stars'] = trim($_POST['stars']);
+        if(!empty($_POST)) {
 
-            $movieModel = new Movie();
-            $movie_id = $movieModel->create($movie); // Создаем в БД запись с фильмом
+            $movie = $this->validateMovieData($_POST);
+            if($movie) {
 
-            // Если фильм успешно сохранен - редирект на страницу этого фильма
-            if($movie_id) {
-                header("Location: http://" . $_SERVER['HTTP_HOST'] . "/movies/show/" . $movie_id );
-                exit;
+                $movieModel = new Movie();
+                // Проверяем не добавлен ли еще фильм с таким названием
+                if(!$movieModel->checkMovieExists($movie['title'])) {
+
+                    $movie_id = $movieModel->create($movie); // Создаем в БД запись с фильмом
+
+                    // Если фильм успешно сохранен - редирект на страницу этого фильма
+                    if($movie_id) {
+                        header("Location: http://" . $_SERVER['HTTP_HOST'] . "/movies/show/" . $movie_id );
+                        exit;
+                    }
+
+                } else {
+                    // Фильм уже добавлен
+                    $errorMessage = "The movie with this title already exists!";
+                }
+
+            } else {
+                // Нужно заполнить все поля
+                $errorMessage = "All fields are required!";
             }
+
         }
 
         // VIEW для текущей страницы
@@ -95,7 +111,9 @@ class MovieController extends Controller
     public function deleteMovie($id)
     {
         $movieModel = new Movie();
-        $movieModel->delete($id); // удаляем фильм из БД
+        if($movieModel->delete($id)) {
+            $_SESSION['errorMessage'] = 'Movie was deleted!';
+        }
 
         header("Location: {$_SERVER['HTTP_REFERER']}");
         exit;
@@ -105,18 +123,28 @@ class MovieController extends Controller
     public function importMovies()
     {
         if($_SERVER['REQUEST_METHOD'] == 'POST') {
-            if(isset($_FILES['fileToUpload']) && $_FILES['fileToUpload']['type'] == 'text/plain') { // Только для тхт файла
-                $fileContent = file_get_contents($_FILES['fileToUpload']['tmp_name']); // Получаем данные из файла
-                if(!empty($fileContent)) {
-                    $movies = $this->fileContentToArray($fileContent); // Обработка данных и конвертация в массив
-                    if($movies) {
-                        // Сохранение фильмов в БД
-                        if($this->saveMovies($movies)) {
-                            header("Location: http://" . $_SERVER['HTTP_HOST'] . "/movies");
-                            exit;
+            if(isset($_FILES['fileToUpload']['name']) && !empty($_FILES['fileToUpload']['name'])) { // Только для тхт файла
+                if($_FILES['fileToUpload']['type'] == 'text/plain') {
+                    $fileContent = file_get_contents($_FILES['fileToUpload']['tmp_name']); // Получаем данные из файла
+                    if(!empty($fileContent)) {
+                        $movies = $this->fileContentToArray($fileContent); // Обработка данных и конвертация в массив
+                        if($movies) {
+                            // Сохранение фильмов в БД
+                            $resultOfAddingMovies = $this->saveMovies($movies);
+                            if($resultOfAddingMovies > 0) {
+                                $successMessage = "Total imported: " . $resultOfAddingMovies;
+                            } else {
+                                $successMessage = "Nothing to import!";
+                            }
                         }
                     }
+                } else {
+                    // Неверный формат файла
+                    $errorMessage = "Invalid file format!";
                 }
+            } else {
+                // Файл не выбран
+                $errorMessage = "You must select txt file!";
             }
         }
 
@@ -132,15 +160,21 @@ class MovieController extends Controller
     public function saveMovies($movies)
     {
         if($movies && is_array($movies)) {
+            $i = 0;
             $movieModel = new Movie();
 
             foreach ($movies as $movie) {
-                if(isset($movie['title']) && isset($movie['year']) && isset($movie['format']) && isset($movie['stars'])) {
-                    $movieModel->create($movie); // сохраняем в БД
+                $movie = $this->validateMovieData($movie); // Проверяем и валидируем данные перед сохранением
+                if($movie) {
+                    if(!$movieModel->checkMovieExists($movie['title'])) { // Проверяем что бы фильм еще не был добавлен по названию
+                        if($movieModel->create($movie)) {
+                            $i++;
+                        }
+                    }
                 }
             }
 
-            return true;
+            return $i;
         }
 
         return false;
@@ -162,11 +196,11 @@ class MovieController extends Controller
                 'Stars' => 'stars'
             ];
 
-            // Обработка данных их тхт файла
+            // Обработка данных из тхт файла
             $arrayWithMovies = preg_split('/\n\s*\n/', $fileContent); // Разделяем по пустой строке - получаем каждый фильм отдельно
             foreach ($arrayWithMovies as $arrayWithMovie) {
-                $arrayWithMovie = preg_split('/\n/', $arrayWithMovie); // разделяем все данные о фильме построково
-                if(count($arrayWithMovie) == 4) { // если количество строк = 4
+                $arrayWithMovie = preg_split('/\n/', $arrayWithMovie); // разделяем данные об одном фильме построково
+                if(count($arrayWithMovie) == 4) { // если количество строк = 4 продолжаем
                     foreach ($arrayWithMovie as $arrayWithMovieByLines) {
                         $partsOfLine = preg_split('/:/', $arrayWithMovieByLines, 2); // До первого символа ":" - заголовок, а после - данные
                         if(isset($patternForKeys[trim($partsOfLine[0])])) { // Из шаблона подставляем нужное имя для поля (если существует)
@@ -185,5 +219,24 @@ class MovieController extends Controller
 
         return false;
     }
+
+    public function validateMovieData($movie)
+    {
+        if(isset($movie['title']) && isset($movie['year']) && isset($movie['format']) && isset($movie['stars'])) {
+
+            // Чистим теги и удаляем пробелы по краям
+            $movie['title'] = trim(strip_tags($movie['title']));
+            $movie['year'] = trim(strip_tags($movie['year']));
+            $movie['format'] = trim(strip_tags($movie['format']));
+            $movie['stars'] = trim(strip_tags($movie['stars']));
+
+            if(!empty($movie['title']) && !empty($movie['year']) && !empty($movie['format']) && !empty($movie['stars'])) {
+                return $movie;
+            }
+        }
+
+        return false;
+    }
+
 
 }

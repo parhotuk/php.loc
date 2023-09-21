@@ -28,7 +28,7 @@ try {
 
     // Проверяем, есть ли таблица в базе данных
     if(!$stmt->rowCount()) {
-        $query = "CREATE TABLE `movies` (`id` INT NOT NULL AUTO_INCREMENT , `title` VARCHAR(255) NOT NULL , `year` YEAR NULL , `format` VARCHAR(255) NULL , `stars` TEXT NULL , PRIMARY KEY (`id`)) ";
+        $query = "CREATE TABLE movies (id INT AUTO_INCREMENT PRIMARY KEY, title VARCHAR(255) NOT NULL , year YEAR NOT NULL , format VARCHAR(255) NOT NULL , stars TEXT NOT NULL) ";
         $stmt = $pdo->prepare($query);
         $stmt->execute();
     }

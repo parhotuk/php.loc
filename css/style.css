@@ -58,13 +58,29 @@ body {
     float: right;
 }
 
-.content {
-
+.error-messages {
+    padding: 0 0 10px 0;
+    color: #5a0000;
+    text-align: center;
+}
+.success-messages {
+    padding: 0 0 10px 0;
+    color: #228d22;
+    text-align: center;
 }
 .content form div {
     padding: 10px 0;
 }
 .content form div.form-line input {
+    width: 100%;
+    height: 45px;
+    font-size: 15px;
+    padding: 5px;
+    border-radius: 3px;
+    border: 1px solid #cdcdcd;
+    background-color: #F2F2F2;
+}
+.content form div.form-line select {
     width: 100%;
     height: 45px;
     font-size: 15px;

@@ -1,6 +1,11 @@
 <div class="title">
     <h1>MOVIES</h1>
 </div>
+<?php if(isset($errorMessage) && !empty($errorMessage)): ?>
+    <div class="error-messages">
+        <?= $errorMessage ?>
+    </div>
+<?php endif; ?>
 <div class="content">
     <div class="content-links">
         <a href="/movies/create">Add movie</a>
@@ -37,7 +42,7 @@
                         <?php endif; ?>
                     </div>
                     <div class="item-delete">
-                        <a href="/movies/delete/<?= $movie['id'] ?>">Delete</a>
+                        <a href="/movies/delete/<?= $movie['id'] ?>" onclick="return confirm('Are you sure you want to delete?')">Delete</a>
                     </div>
                 </div>
 

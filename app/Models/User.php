@@ -18,15 +18,19 @@ class User
     // Проверка не занят ли логин
     private function isLoginFree($login)
     {
-        $query = "SELECT id FROM users WHERE login = :login LIMIT 1";
-        $stmt = $this->pdo->prepare($query);
-        $stmt->bindParam(':login', $login);
-        $stmt->execute();
+        try {
+            $query = "SELECT id FROM users WHERE login = :login LIMIT 1";
+            $stmt = $this->pdo->prepare($query);
+            $stmt->bindParam(':login', $login);
+            $stmt->execute();
 
-        if($stmt->rowCount() > 0) {
-            return false;
-        } else {
-            return true;
+            if($stmt->rowCount() > 0) {
+                return false;
+            } else {
+                return true;
+            }
+        } catch (PDOException $e) {
+            echo "Error: " . $e->getMessage();
         }
 
     }
@@ -38,32 +42,39 @@ class User
 
             $hashedPassword = password_hash($password, PASSWORD_DEFAULT); // Хеширование пароля
 
-            $query = "INSERT INTO users (login, password) VALUES (:login, :password)";
-            $stmt = $this->pdo->prepare($query);
-            $stmt->bindParam(':login', $login);
-            $stmt->bindParam(':password', $hashedPassword);
+            try {
+                $query = "INSERT INTO users (login, password) VALUES (:login, :password)";
+                $stmt = $this->pdo->prepare($query);
+                $stmt->bindParam(':login', $login);
+                $stmt->bindParam(':password', $hashedPassword);
 
-            if($stmt->execute()) {
-                return $this->pdo->lastInsertId();
+                if($stmt->execute()) {
+                    return $this->pdo->lastInsertId();
+                }
+            } catch (PDOException $e) {
+                echo "Error: " . $e->getMessage();
             }
 
         }
 
         return false;
-
     }
 
     // По логину возвращаем данные пользователя
     public function getUserByLogin($login)
     {
-        $query = "SELECT * FROM users WHERE login = :login LIMIT 1";
-        $stmt = $this->pdo->prepare($query);
-        $stmt->bindParam(':login', $login);
-        $stmt->execute();
-        $user = $stmt->fetch(PDO::FETCH_ASSOC);
+        try {
+            $query = "SELECT * FROM users WHERE login = :login LIMIT 1";
+            $stmt = $this->pdo->prepare($query);
+            $stmt->bindParam(':login', $login);
+            $stmt->execute();
+            $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        if($user) {
-            return $user;
+            if($user) {
+                return $user;
+            }
+        } catch (PDOException $e) {
+            echo "Error: " . $e->getMessage();
         }
 
         return false;

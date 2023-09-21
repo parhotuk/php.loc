@@ -27,14 +27,25 @@ class UserController extends Controller
                 $user = $userModel->getUserByLogin($login); // Если существует - получаем данные пользователя
 
                 // Проверка пароля и авторизация
-                if($user && password_verify($password, $user['password'])) {
-                    $this->authenticate($user['id'], $user['login']);
+                if($user) {
+                    if(password_verify($password, $user['password'])) {
+                        $this->authenticate($user['id'], $user['login']);
 
-                    // Редирект на страницу фильмов
-                    header('Location: http://' . $_SERVER['HTTP_HOST'] . '/movies');
-                    exit;
+                        // Редирект на страницу фильмов
+                        header('Location: http://' . $_SERVER['HTTP_HOST'] . '/movies');
+                        exit;
+                    } else {
+                        // Введен неверный пароль
+                        $errorMessage = "Wrong password!";
+                    }
+                } else {
+                    // Пользователь не зарегистрирован
+                    $errorMessage = "User not found!";
                 }
 
+            } else {
+                // Нужно заполнить все поля
+                $errorMessage = "All required fields must be filled!";
             }
 
         }
@@ -77,12 +88,20 @@ class UserController extends Controller
                             // редирект на страницу фильмов
                             header('Location: http://' . $_SERVER['HTTP_HOST'] . '/movies');
                             exit;
+                        } else {
+                            $errorMessage = "Error! This login might be taken!";
                         }
 
                     }
 
+                } else {
+                    // Введенные пароли не сопадают
+                    $errorMessage = "Passwords don't match!";
                 }
 
+            } else {
+                // Нужно заполнить все поля
+                $errorMessage = "All required fields must be filled!";
             }
 
         }
@@ -99,9 +118,7 @@ class UserController extends Controller
     // Проверка логина который ввел пользователь: можно добавлять проверки для безопасности
     private function isValidLogin($login)
     {
-        if(strlen($login) <= 2 || strlen($login) > 20) {
-            return false;
-        } elseif(!preg_match('/^[a-zA-Z0-9]+$/', $login)) {
+        if(strlen($login) <= 2 || strlen($login) > 30) {
             return false;
         } else {
             return  true;
